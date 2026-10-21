@@ -60,6 +60,12 @@ try {
   const reviewText = 'Fantastic services — the staff explained every option clearly.';
   await page.locator('textarea[name="review"]').fill(reviewText);
   await page.locator('select[name="rating"]').selectOption('5');
+  await page.locator('select[name="purchase"]').selectOption('true');
+  await page.locator('input[name="purchase_date"]').fill('2025-07-11');
+  await page.locator('select[name="car_make"]').selectOption('Toyota');
+  await page.locator('select[name="car_model"]').selectOption('Camry');
+  await page.locator('input[name="car_year"]').fill('2025');
+  await page.locator('textarea[name="review"]').fill(reviewText);
   await snap('dealership_review_submission.png');
 
   // Task 22: successful review submission, persisted on dealer details.

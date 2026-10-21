@@ -1,36 +1,60 @@
-# Cars Dealership — Full-Stack Capstone
+# Project Name: Cars Dealership — Full-Stack Capstone
 
-A responsive dealership directory with Django APIs, dealer/review pages, a React signup component, session login/logout, and review sentiment analysis.
+**Repository name:** `Cars-Dealership-Full-Stack-Capstone-assignment`  
+**Project name:** `Cars Dealership Full-Stack Application`
 
-## Stack
-- Django + SQLite: API, server-rendered pages, authentication and admin
-- React + Vite: registration component and frontend
-- GitHub Actions: CI checks
-- Docker: container deployment starter
+## Project overview
+
+A responsive dealership directory for browsing US dealer branches, viewing customer reviews, registering and signing in, posting reviews, and analyzing review sentiment. This repository contains the Django application, React signup component, demo data, CI workflow, API evidence, and deployment configuration.
+
+## Technology stack
+
+- **Backend:** Python, Django, SQLite
+- **Frontend:** React, Vite, JavaScript, CSS
+- **Authentication:** Django session authentication
+- **Testing and automation:** Django tests, GitHub Actions
+- **Deployment starter:** Docker and Render Blueprint
 
 ## Deploy to Render
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DakshDhaundiyal/Cars-Dealership-Full-Stack-Capstone-assignment)
 
-Alternatively, open the [Render Blueprint setup page](https://dashboard.render.com/blueprint/new?repo=https://github.com/DakshDhaundiyal/Cars-Dealership-Full-Stack-Capstone-assignment), review the checked-in `render.yaml`, and choose **Deploy Blueprint**. After Render finishes provisioning, copy the actual service URL into the rubric's `deploymentURL` file and capture deployment screenshots from that live URL.
+Alternatively, open the [Render Blueprint setup page](https://dashboard.render.com/blueprint/new?repo=https://github.com/DakshDhaundiyal/Cars-Dealership-Full-Stack-Capstone-assignment), review the checked-in `render.yaml`, and choose **Deploy Blueprint**. Once Render finishes provisioning, copy the actual public service URL into the rubric's `deploymentURL` file and use the deployed-evidence workflow to capture screenshots from that live service.
 
 ## Run locally
+
+From the repository root:
+
 ```bash
 pip install -r requirements.txt
 cd server
 python manage.py migrate
-# Optional: create a local-only demo login for coursework screenshots
-# Linux/macOS/Git Bash:
-CREATE_DEMO_USER=true DEMO_USER_PASSWORD='ChooseYourLocalTestPassword123!' python manage.py seed_data
-# Windows PowerShell alternative:
-# $env:CREATE_DEMO_USER="true"; $env:DEMO_USER_PASSWORD="ChooseYourLocalTestPassword123!"; python manage.py seed_data
-python manage.py createsuperuser
-python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/`. Django admin is at `/admin/`. Demo-account creation is disabled by default and requires the explicit local-only `CREATE_DEMO_USER=true` and `DEMO_USER_PASSWORD` environment variables. Never enable a shared demo account in production.
+To create a local demo login only for coursework screenshots:
 
-Run the React frontend separately:
+**Linux/macOS/Git Bash**
+```bash
+CREATE_DEMO_USER=true DEMO_USER_PASSWORD='ChooseYourLocalTestPassword123!' python manage.py seed_data
+```
+
+**Windows PowerShell**
+```powershell
+$env:CREATE_DEMO_USER="true"
+$env:DEMO_USER_PASSWORD="ChooseYourLocalTestPassword123!"
+python manage.py seed_data
+```
+
+Then start the server:
+
+```bash
+python3 manage.py runserver
+```
+
+Open `http://127.0.0.1:8000/`; the Django admin is available at `/admin/`. Demo-account creation is disabled by default and requires both `CREATE_DEMO_USER=true` and `DEMO_USER_PASSWORD`. Never enable a shared demo account in production.
+
+Run the React development frontend separately:
+
 ```bash
 cd server/frontend
 npm install
@@ -38,26 +62,35 @@ npm run dev
 ```
 
 ## API endpoints
+
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/djangoapp/api/dealers/` | List dealers; optionally `?state=Kansas` |
-| GET | `/djangoapp/api/dealers/<id>/` | Dealer details |
-| GET | `/djangoapp/api/dealers/<id>/reviews/` | Dealer reviews |
-| POST | `/djangoapp/api/register/` | Create an account |
-| POST | `/djangoapp/api/login/` | Start session |
-| POST | `/djangoapp/api/logout/` | End session |
-| POST | `/djangoapp/api/reviews/` | Post review (requires login) |
-| GET | `/djangoapp/api/car-makes/` | Car makes and models |
-| POST | `/djangoapp/api/analyze-review/` | Analyze text sentiment |
+| GET | `/fetchDealers` | All dealers with location and display-name fields |
+| GET | `/fetchDealers/Kansas` | Dealers in Kansas |
+| GET | `/fetchDealer/1` | Details for one dealer |
+| GET | `/fetchReviews/dealer/1` | Reviews with purchase and vehicle details |
+| GET | `/djangoapp/get_cars` | Car makes grouped with their models |
+| GET | `/djangoapp/api/dealers/` | Current API listing; accepts `?state=Kansas` |
+| GET | `/djangoapp/api/dealers/<id>/` | Current API dealer details |
+| GET | `/djangoapp/api/dealers/<id>/reviews/` | Current API reviews for a dealer |
+| POST | `/djangoapp/api/register/` | Create a user account |
+| POST | `/djangoapp/api/login/` | Start a session |
+| POST | `/djangoapp/api/logout/` | End a session |
+| POST | `/djangoapp/api/reviews/` | Post a review while logged in |
+| GET | `/djangoapp/api/car-makes/` | Flat list of available makes and models |
+| POST | `/djangoapp/api/analyze-review/` | Analyze review sentiment |
 
-## Files for the rubric
-- About Us: [server/frontend/static/About.html](server/frontend/static/About.html)
-- Contact Us: [server/frontend/static/Contact.html](server/frontend/static/Contact.html)
-- React Sign-up: [server/frontend/src/components/Register/Register.jsx](server/frontend/src/components/Register/Register.jsx)
-- Evidence capture guide: [docs/EVIDENCE_CHECKLIST.md](docs/EVIDENCE_CHECKLIST.md)
-- cURL examples: [docs/curl-examples.md](docs/curl-examples.md)
+## Rubric files
 
-The terminal logs, screenshots, GitHub Actions run evidence and deployment URL in the assignment must be captured from an actually running app. Do not submit fabricated logs or represent a local page as a cloud deployment.
+- [About Us page](server/frontend/static/About.html)
+- [Contact Us page](server/frontend/static/Contact.html)
+- [React Sign-up component](server/frontend/src/components/Register/Register.jsx)
+- [Evidence checklist](docs/EVIDENCE_CHECKLIST.md)
+- [cURL examples](docs/curl-examples.md)
+- [GitHub Actions workflow](.github/workflows/ci.yml)
 
-## Security and deployment
-Set `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, and `DJANGO_ALLOWED_HOSTS` in production. Use HTTPS, secure session cookies, and a production database. Seed dealer listings and email addresses are illustrative sample data. Sentiment analysis is a lightweight lexicon-based demo.
+The terminal output, browser screenshots, CI/CD logs, and deployment URL included with the capstone should be generated from a running app and an actual successful workflow. The workflow in this repository regenerates the local API output files and screenshot evidence on successful runs. Live deployment screenshots can only be produced after a real deployment URL is available.
+
+## Security and deployment notes
+
+Set `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, and `DJANGO_ALLOWED_HOSTS` for production. Use HTTPS, secure session cookies, and a production database. Sample dealer records, staff contact details, and `.example` email addresses are illustrative data. Sentiment analysis is a lightweight lexicon-based demo, not a clinical or financial classifier.

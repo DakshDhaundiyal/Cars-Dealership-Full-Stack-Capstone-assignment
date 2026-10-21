@@ -1,6 +1,7 @@
 name: Django and frontend CI
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: cars-dealership-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -11,7 +12,49 @@ on:
     branches: [main]
   workflow_dispatch:
 jobs:
+  lint-python:
+    name: Lint Python Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python dependencies and linter
+        run: pip install -r requirements.txt ruff
+      - name: Lint Python Files
+        working-directory: server
+        env:
+          DJANGO_SECRET_KEY: test-only-secret-key
+          DJANGO_DEBUG: 'True'
+        run: |
+          python -m compileall -q .
+          ruff check . --select E9,F63,F7,F82
+          python manage.py check
+
+  lint-javascript:
+    name: Lint JavaScript Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        working-directory: server/frontend
+        run: npm install
+      - name: Lint JavaScript Files
+        run: |
+          npm --prefix server/frontend run build
+          node --check scripts/capture_screenshots.mjs
+          node --check scripts/capture_homepage_screenshot.mjs
+
   test:
+    needs: [lint-python, lint-javascript]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -63,40 +106,101 @@ jobs:
         env:
           DJANGO_SECRET_KEY: test-only-secret-key
           DJANGO_DEBUG: 'True'
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          python manage.py runserver 127.0.0.1:8000 > ../django_server 2>&1 &
+          printf '%s\\n' '$ python3 manage.py runserver 127.0.0.1:8000' > ../django_server
+          PYTHONUNBUFFERED=1 python -u manage.py runserver 127.0.0.1:8000 >> ../django_server 2>&1 &
           SERVER_PID=$!
-          cleanup() { kill "$SERVER_PID" >/dev/null 2>&1 || true; }
+          cleanup() {
+            kill "$SERVER_PID" >/dev/null 2>&1 || true
+            wait "$SERVER_PID" >/dev/null 2>&1 || true
+          }
           trap cleanup EXIT
           for n in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8000/djangoapp/api/dealers/ >/dev/null; then break; fi
+            if curl -fsS http://127.0.0.1:8000/fetchDealers >/dev/null; then break; fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8000/djangoapp/api/dealers/ >/dev/null
-          printf "%s\\n" "$ curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{\\"username\\":\\"demo\\",\\"password\\":\\"DemoPass123!\\"}'" > ../loginuser
-          curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{"username":"demo","password":"DemoPass123!"}' >> ../loginuser 2>&1
-          printf "%s\\n" "$ curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}'" > ../logoutuser
-          curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}' >> ../logoutuser 2>&1
-          printf '$ curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/\n' > ../getalldealers
-          curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/ >> ../getalldealers 2>&1
-          printf '\n\n$ curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/1/reviews/\n' >> ../getdealerreviews
-          curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/1/reviews/ >> ../getdealerreviews 2>&1
-          printf '$ curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/1/\n' > ../getdealerbyid
-          curl -sS http://127.0.0.1:8000/djangoapp/api/dealers/1/ >> ../getdealerbyid 2>&1
-          printf '$ curl -sS "http://127.0.0.1:8000/djangoapp/api/dealers/?state=Kansas"\n' > ../getdealersbyState
-          curl -sS 'http://127.0.0.1:8000/djangoapp/api/dealers/?state=Kansas' >> ../getdealersbyState 2>&1
-          printf '$ curl -sS http://127.0.0.1:8000/djangoapp/api/car-makes/\n' > ../getallcarmakes
-          curl -sS http://127.0.0.1:8000/djangoapp/api/car-makes/ >> ../getallcarmakes 2>&1
-          printf '$ curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H "Content-Type: application/json" -d {"review":"Fantastic services"}\n' > ../analyzereview
-          curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{"review":"Fantastic services"}' >> ../analyzereview 2>&1
+          curl -fsS http://127.0.0.1:8000/fetchDealers >/dev/null
           sleep 1
+
+          printf '%s\\n' "$ curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{\\"username\\":\\"demo\\",\\"password\\":\\"DemoPass123!\\"}'" > ../loginuser
+          curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{"username":"demo","password":"DemoPass123!"}' >> ../loginuser 2>&1
+          printf '\\n' >> ../loginuser
+
+          printf '%s\\n' "$ curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}'" > ../logoutuser
+          curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}' >> ../logoutuser 2>&1
+          printf '\\n' >> ../logoutuser
+
+          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers' > ../getalldealers
+          curl -fsS http://127.0.0.1:8000/fetchDealers >> ../getalldealers
+          printf '\\n' >> ../getalldealers
+
+          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchReviews/dealer/1' > ../getdealerreviews
+          curl -fsS http://127.0.0.1:8000/fetchReviews/dealer/1 >> ../getdealerreviews
+          printf '\\n' >> ../getdealerreviews
+
+          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealer/1' > ../getdealerbyid
+          curl -fsS http://127.0.0.1:8000/fetchDealer/1 >> ../getdealerbyid
+          printf '\\n' >> ../getdealerbyid
+
+          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers/Kansas' > ../getdealersbyState
+          curl -fsS http://127.0.0.1:8000/fetchDealers/Kansas >> ../getdealersbyState
+          printf '\\n' >> ../getdealersbyState
+
+          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/djangoapp/get_cars' > ../getallcarmakes
+          curl -fsS http://127.0.0.1:8000/djangoapp/get_cars >> ../getallcarmakes
+          printf '\\n' >> ../getallcarmakes
+
+          printf '%s\\n' "$ curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{\\"review\\":\\"Fantastic services\\"}'" > ../analyzereview
+          curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{"review":"Fantastic services"}' >> ../analyzereview
+          printf '\\n' >> ../analyzereview
+
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" > "${RUNNER_TEMP}/run-jobs.json"
           {
             echo "GitHub Actions workflow: Django and frontend CI"
             echo "Workflow run ID: ${GITHUB_RUN_ID}"
             echo "Commit SHA: ${GITHUB_SHA}"
+            echo "Workflow URL: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo
+          } > ../CICD
+          python - "${RUNNER_TEMP}/run-jobs.json" <<'PY' >> ../CICD
+          import json
+          import sys
+          from datetime import datetime
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              jobs = json.load(handle).get("jobs", [])
+
+          required = ("Lint Python Files", "Lint JavaScript Files")
+          for required_name in required:
+              matches = [job for job in jobs if job.get("name") == required_name]
+              if not matches:
+                  print(f"Job: {required_name} — NOT FOUND IN THIS RUN")
+                  continue
+              job = matches[0]
+              started = job.get("started_at")
+              completed = job.get("completed_at")
+              if started and completed:
+                  begin = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                  end = datetime.fromisoformat(completed.replace("Z", "+00:00"))
+                  duration = f"{(end - begin).total_seconds():.1f}s"
+              else:
+                  duration = "not yet available"
+              print(f"Job: {job.get('name')}")
+              print(f"Job ID: {job.get('id')}")
+              print(f"Conclusion: {job.get('conclusion') or job.get('status')}")
+              print(f"Duration: {duration}")
+              print("Steps:")
+              for step in job.get("steps", []):
+                  conclusion = step.get("conclusion") or step.get("status") or "unknown"
+                  mark = "PASS" if conclusion == "success" else conclusion.upper()
+                  print(f"  [{mark}] {step.get('number')}. {step.get('name')}")
+              print()
+          PY
+
+          {
             echo '$ python manage.py check'
             python manage.py check
             echo
@@ -109,13 +213,10 @@ jobs:
             echo '$ npm run build'
             (cd frontend && npm run build)
             echo
-            echo '$ curl -fsS http://127.0.0.1:8000/djangoapp/api/dealers/'
-            curl -fsS http://127.0.0.1:8000/djangoapp/api/dealers/
+            echo '$ curl -fsS http://127.0.0.1:8000/fetchDealers'
+            curl -fsS http://127.0.0.1:8000/fetchDealers
             echo
-            echo
-            echo "Detailed step log and GitHub Actions result:"
-            echo "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          } > ../CICD 2>&1
+          } >> ../CICD 2>&1
           cat ../django_server
       - name: Capture real local browser screenshots
         working-directory: server
@@ -144,7 +245,7 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:8000/djangoapp/api/dealers/ >/dev/null
-          xvfb-run -a -s "-screen 0 1600x1000x24" node ../scripts/capture_homepage_screenshot.mjs
+          xvfb-run -a -s "-screen 0 1600x1000x24" node ../scripts/capture_screenshots.mjs
       - name: Commit local rubric evidence files
         if: github.event_name != 'pull_request' && github.actor != 'github-actions[bot]'
         shell: bash

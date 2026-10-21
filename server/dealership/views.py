@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -48,7 +49,13 @@ def review_page(request, dealer_id):
     dealer = get_object_or_404(Dealer, pk=dealer_id)
     if not request.user.is_authenticated:
         return redirect(f"/login/?next=/dealer/{dealer.pk}/review/")
-    return render(request, "dealership/review_form.html", {"dealer": dealer})
+    car_makes = sorted(CarMake.objects.values_list("make", flat=True).distinct())
+    car_models = CarMake.objects.all()
+    return render(
+        request,
+        "dealership/review_form.html",
+        {"dealer": dealer, "car_makes": car_makes, "car_models": car_models},
+    )
 
 
 @require_GET
@@ -195,6 +202,13 @@ def create_review(request):
     purchase_value = data.get("purchase", True)
     if isinstance(purchase_value, str):
         purchase_value = purchase_value.strip().lower() in {"true", "1", "yes", "on"}
+    purchase_date_text = str(data.get("purchase_date", "")).strip()
+    try:
+        purchase_date = date.fromisoformat(purchase_date_text) if purchase_date_text else None
+        car_year = int(data.get("car_year", 2025))
+    except ValueError:
+        return JsonResponse({"error": "Enter a valid purchase date and car year."}, status=400)
+
     review = DealerReview.objects.create(
         dealer=dealer,
         user=request.user,
@@ -202,9 +216,10 @@ def create_review(request):
         review=review_text,
         sentiment=analyze_sentiment(review_text)["sentiment"],
         purchase=bool(purchase_value),
+        purchase_date=purchase_date,
         car_make=str(data.get("car_make", "Toyota")).strip(),
         car_model=str(data.get("car_model", "Camry")).strip(),
-        car_year=int(data.get("car_year", 2025)),
+        car_year=car_year,
     )
     return JsonResponse({"message": "Review posted successfully.", "review": review.as_dict()}, status=201)
 

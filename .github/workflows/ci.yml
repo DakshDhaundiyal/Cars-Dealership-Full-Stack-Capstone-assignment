@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\\n' '$ python3 manage.py runserver 127.0.0.1:8000' > ../django_server
+          printf '%s\n' '$ python3 manage.py runserver 127.0.0.1:8000' > ../django_server
           PYTHONUNBUFFERED=1 python -u manage.py runserver 127.0.0.1:8000 >> ../django_server 2>&1 &
           SERVER_PID=$!
           cleanup() {
@@ -125,37 +125,37 @@ jobs:
           curl -fsS http://127.0.0.1:8000/fetchDealers >/dev/null
           sleep 1
 
-          printf '%s\\n' "$ curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{\\"username\\":\\"demo\\",\\"password\\":\\"DemoPass123!\\"}'" > ../loginuser
+          printf '%s\n' "$ curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{\"username\":\"demo\",\"password\":\"DemoPass123!\"}'" > ../loginuser
           curl -i -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/login/ -H 'Content-Type: application/json' -d '{"username":"demo","password":"DemoPass123!"}' >> ../loginuser 2>&1
-          printf '\\n' >> ../loginuser
+          printf '\n' >> ../loginuser
 
-          printf '%s\\n' "$ curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}'" > ../logoutuser
+          printf '%s\n' "$ curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}'" > ../logoutuser
           curl -i -b cookies.txt -c cookies.txt -X POST http://127.0.0.1:8000/djangoapp/api/logout/ -H 'Content-Type: application/json' -d '{}' >> ../logoutuser 2>&1
-          printf '\\n' >> ../logoutuser
+          printf '\n' >> ../logoutuser
 
-          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers' > ../getalldealers
+          printf '%s\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers' > ../getalldealers
           curl -fsS http://127.0.0.1:8000/fetchDealers >> ../getalldealers
-          printf '\\n' >> ../getalldealers
+          printf '\n' >> ../getalldealers
 
-          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchReviews/dealer/1' > ../getdealerreviews
+          printf '%s\n' '$ curl -fsS http://127.0.0.1:8000/fetchReviews/dealer/1' > ../getdealerreviews
           curl -fsS http://127.0.0.1:8000/fetchReviews/dealer/1 >> ../getdealerreviews
-          printf '\\n' >> ../getdealerreviews
+          printf '\n' >> ../getdealerreviews
 
-          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealer/1' > ../getdealerbyid
+          printf '%s\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealer/1' > ../getdealerbyid
           curl -fsS http://127.0.0.1:8000/fetchDealer/1 >> ../getdealerbyid
-          printf '\\n' >> ../getdealerbyid
+          printf '\n' >> ../getdealerbyid
 
-          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers/Kansas' > ../getdealersbyState
+          printf '%s\n' '$ curl -fsS http://127.0.0.1:8000/fetchDealers/Kansas' > ../getdealersbyState
           curl -fsS http://127.0.0.1:8000/fetchDealers/Kansas >> ../getdealersbyState
-          printf '\\n' >> ../getdealersbyState
+          printf '\n' >> ../getdealersbyState
 
-          printf '%s\\n' '$ curl -fsS http://127.0.0.1:8000/djangoapp/get_cars' > ../getallcarmakes
+          printf '%s\n' '$ curl -fsS http://127.0.0.1:8000/djangoapp/get_cars' > ../getallcarmakes
           curl -fsS http://127.0.0.1:8000/djangoapp/get_cars >> ../getallcarmakes
-          printf '\\n' >> ../getallcarmakes
+          printf '\n' >> ../getallcarmakes
 
-          printf '%s\\n' "$ curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{\\"review\\":\\"Fantastic services\\"}'" > ../analyzereview
+          printf '%s\n' "$ curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{\"review\":\"Fantastic services\"}'" > ../analyzereview
           curl -sS -X POST http://127.0.0.1:8000/djangoapp/api/analyze-review/ -H 'Content-Type: application/json' -d '{"review":"Fantastic services"}' >> ../analyzereview
-          printf '\\n' >> ../analyzereview
+          printf '\n' >> ../analyzereview
 
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" > "${RUNNER_TEMP}/run-jobs.json"
           {

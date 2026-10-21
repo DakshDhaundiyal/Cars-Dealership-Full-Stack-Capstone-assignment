@@ -1,1 +1,107 @@
-{% extends 'dealership/base.html' %}{% block title %}Write a Review | {{ dealer.name }}{% endblock %}{% block content %}<div class="breadcrumb"><a href="/">All dealers</a><span>/</span><a href="/dealer/{{ dealer.id }}/">{{ dealer.name }}</a><span>/</span><span>Write a review</span></div><section class="review-compose"><div><p class="eyebrow">YOUR EXPERIENCE MATTERS</p><h1>Share your<br><em>story.</em></h1><p class="hero-sub">Your review can help another driver make a confident choice.</p></div><div class="form-card"><form id="review-form" class="stack-form"><label>Rating<select name="rating"><option value="5">★★★★★ — Excellent</option><option value="4">★★★★ — Very good</option><option value="3">★★★ — Good</option><option value="2">★★ — Fair</option><option value="1">★ — Poor</option></select></label><label>Your review<textarea name="review" rows="6" maxlength="1500" required placeholder="Tell us about your experience…"></textarea></label><button class="button button-outline" id="check-sentiment" type="button">Analyze sentiment</button><p id="sentiment-preview" class="sentiment-preview"></p><button class="button button-dark" type="submit">Post review →</button><p id="review-message" class="form-message" aria-live="polite"></p></form></div></section>{% endblock %}{% block scripts %}<script>const f=document.getElementById('review-form'),text=f.elements.review,msg=document.getElementById('review-message');document.getElementById('check-sentiment').onclick=async()=>{const r=await fetch('/djangoapp/api/analyze-review/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({review:text.value})}),d=await r.json();document.getElementById('sentiment-preview').textContent='Sentiment: '+(d.sentiment||d.error)};f.onsubmit=async e=>{e.preventDefault();const r=await fetch('/djangoapp/api/reviews/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dealer_id:{{ dealer.id }},rating:f.elements.rating.value,review:text.value})}),d=await r.json();if(!r.ok){msg.textContent=d.error;msg.className='form-message error';return}location.href='/dealer/{{ dealer.id }}/'};</script>{% endblock %}
+{% extends 'dealership/base.html' %}
+{% block title %}Write a Review | {{ dealer.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">All dealers</a><span>/</span>
+  <a href="/dealer/{{ dealer.id }}/">{{ dealer.name }}</a><span>/</span>
+  <span>Write a review</span>
+</div>
+<section class="review-compose">
+  <div>
+    <p class="eyebrow">YOUR EXPERIENCE MATTERS</p>
+    <h1>Share your<br><em>story.</em></h1>
+    <p class="hero-sub">Your review can help another driver make a confident choice.</p>
+  </div>
+  <div class="form-card">
+    <form id="review-form" class="stack-form">
+      <label>Rating
+        <select name="rating" required>
+          <option value="5">★★★★★ — Excellent</option>
+          <option value="4">★★★★ — Very good</option>
+          <option value="3">★★★ — Good</option>
+          <option value="2">★★ — Fair</option>
+          <option value="1">★ — Poor</option>
+        </select>
+      </label>
+      <label>Did you purchase a vehicle?
+        <select name="purchase" required>
+          <option value="true">Yes, I purchased a vehicle</option>
+          <option value="false">No, not yet</option>
+        </select>
+      </label>
+      <label>Purchase date
+        <input type="date" name="purchase_date" value="2025-07-11" required>
+      </label>
+      <label>Car make
+        <select name="car_make" required>
+          {% for make in car_makes %}
+          <option value="{{ make }}"{% if make == 'Toyota' %} selected{% endif %}>{{ make }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Car model
+        <select name="car_model" required>
+          {% for item in car_models %}
+          <option value="{{ item.model }}"{% if item.make == 'Toyota' and item.model == 'Camry' %} selected{% endif %}>{{ item.make }} — {{ item.model }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Car year
+        <input type="number" name="car_year" min="2015" max="2025" value="2025" required>
+      </label>
+      <label>Your review
+        <textarea name="review" rows="5" maxlength="1500" required placeholder="Tell us about your experience…"></textarea>
+      </label>
+      <button class="button button-outline" id="check-sentiment" type="button">Analyze sentiment</button>
+      <p id="sentiment-preview" class="sentiment-preview" aria-live="polite"></p>
+      <button class="button button-dark" type="submit">Post review →</button>
+      <p id="review-message" class="form-message" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const form = document.getElementById('review-form');
+const reviewText = form.elements.review;
+const message = document.getElementById('review-message');
+
+document.getElementById('check-sentiment').addEventListener('click', async () => {
+  const response = await fetch('/djangoapp/api/analyze-review/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ review: reviewText.value })
+  });
+  const result = await response.json();
+  document.getElementById('sentiment-preview').textContent =
+    'Sentiment: ' + (result.sentiment || result.error);
+});
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  message.textContent = '';
+  const review = {
+    dealer_id: {{ dealer.id }},
+    rating: Number(form.elements.rating.value),
+    review: reviewText.value,
+    purchase: form.elements.purchase.value,
+    purchase_date: form.elements.purchase_date.value,
+    car_make: form.elements.car_make.value,
+    car_model: form.elements.car_model.value,
+    car_year: Number(form.elements.car_year.value)
+  };
+  const response = await fetch('/djangoapp/api/reviews/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(review)
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    message.textContent = result.error || 'Unable to post review.';
+    message.className = 'form-message error';
+    return;
+  }
+  window.location.href = '/dealer/{{ dealer.id }}/';
+});
+</script>
+{% endblock %}
